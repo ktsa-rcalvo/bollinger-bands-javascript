@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Infront code-test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/6.2.1/math.js"></script>
+
+    <script type="text/javascript">
+      /*
+    Calculating and plotting Bollinger Bands
+    */
+      // Settings
+      const SMAverage = 20; // Simple Moving Average
+      const std = 2; // Standard deviation
+
+      document.addEventListener(
+        'DOMContentLoaded',
+        function(event) {
+          getDataSet('data/Oslo_STL.json', function(dataSet) {
+            if (dataSet) {
+              renderChart('STL', JSON.parse(dataSet));
+            }
+          });
+          getDataSet('data/Stockholm_ABB.json', function(dataSet) {
+            if (dataSet) {
+              renderChart('ABB', JSON.parse(dataSet));
+            }
+          });
+        },
+        { passive: true }
+      );
+
+      /* 
+       Takes array of prices, SMA (simple moving average) and std (standard deviation multiplication). 
+       Returns an object with moving averages and Billinger Bands' prices limit as arrays of points.
+      */
+      function bollingerBands(avPricesArray, SMAverage, std) {
+        // Daily moving average - center band.
+        let midBand = [];
+        // Standard deviations above the center band.
+        let topBand = [];
+        // Standard deviations below the center band.
+        let botBand = [];
+        // Array cannot be smaller than SMA-days count for average equation
+        if (avPricesArray.length <= SMAverage) {
+          throw 'Data count is too small!';
+        }
+
+        /*
+        Using 2 iterators to calculate the delay caused by SMA days count
+        */
+        let i = 0;
+        let j = 0;
+        while (i <= avPricesArray.length) {
+          if (i < SMAverage) {
+            // Filling arrays with nulls until it will be possible to
+            // calculate beginning of the bands or SMA
+            midBand.push(null);
+            topBand.push(null);
+            botBand.push(null);
+            i += 1;
+          } else {
+            // Cutting a portion of last SMA-number of results
+            let workingArray = avPricesArray.slice(j, j + SMAverage);
+
+            // Calculates standard deviation of SMA-number of results
+            let standardDeviation = math.std(workingArray);
+
+            // Calculating moving average which is a total sum of last SMA-number of results
+            // divided by SMA-number of results
+            let midPoint =
+              workingArray.reduce(sumOfArray) / workingArray.length;
+
+            // Calculating top and bottom point of Bollinger Bands
+            let topPoint = midPoint + standardDeviation * std;
+            let botPoint = midPoint - standardDeviation * std;
+
+            // Adding results to arrays
+            midBand.push(midPoint);
+            topBand.push(topPoint);
+            botBand.push(botPoint);
+            i += 1;
+            j += 1;
+          }
+        }
+        let bollingerBands = {
+          midBand: midBand,
+          topBand: topBand,
+          botBand: botBand
+        };
+
+        return bollingerBands;
+      }
+
+      function renderChart(id, dataSet) {
+        // Taking out prices and putting into an array
+        var stockPrices = dataSet.map(el => el.last);
+
+        // Generating object with arrays for each band
+        let bBands = bollingerBands(stockPrices, SMAverage, std);
+
+        // Generating x and y axis for stock prices
+        var stockPrices = calculatePlotData(dataSet, false);
+
+        // Generating x and y axis for Bollinger Bands
+        var bollingerBandDataTop = calculatePlotData(dataSet, bBands.topBand);
+        var bollingerBandDataMid = calculatePlotData(dataSet, bBands.midBand);
+        var bollingerBandDataBot = calculatePlotData(dataSet, bBands.botBand);
+
+        var context = document.querySelector('#' + id).getContext('2d');
+        var stockChart = new Chart(context, {
+          type: 'line',
+          data: {
+            datasets: [
+              {
+                label: id,
+                fill: false,
+                data: stockPrices,
+                pointRadius: 0,
+                borderColor: '#1a41cc'
+              },
+              // Plotting additional data
+              {
+                label: 'Top band',
+                fill: false,
+                data: bollingerBandDataTop,
+                pointRadius: 0,
+                borderColor: '#1f9aff',
+                borderWidth: 1
+              },
+              {
+                label: 'Average',
+                fill: false,
+                data: bollingerBandDataMid,
+                pointRadius: 0,
+                borderColor: '#a6a2ab',
+                borderWidth: 2
+              },
+              {
+                label: 'Bottom band',
+                fill: false,
+                data: bollingerBandDataBot,
+                pointRadius: 0,
+                borderColor: '#1f9aff',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            animation: false,
+            responsive: false,
+            scales: {
+              xAxes: [
+                {
+                  type: 'time',
+                  display: true
+                }
+              ]
+            }
+          }
+        });
+      }
+
+      function getDataSet(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.onload = function() {
+          if (xhr.status == 200) {
+            callback(xhr.responseText);
+          } else {
+            callback(null);
+          }
+        };
+        xhr.send();
+      }
+
+      /*
+      Generating x and y values for original and new data.
+      */
+      function calculatePlotData(initialData, additionalData) {
+        var chartData = initialData.map(function(item, index, array) {
+          return {
+            x: new Date(item.date).toISOString(),
+            y: additionalData ? additionalData[index] : item.last
+          };
+        });
+        return chartData;
+      }
+
+      // Helper function for a reducer
+      function sumOfArray(total, num) {
+        return total + num;
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="STL" width="900" height="450"></canvas>
+    <canvas id="ABB" width="900" height="450"></canvas>
+  </body>
+</html>
