@@ -9,8 +9,8 @@
 
     <script type="text/javascript">
       /*
-    Calculating and plotting Bollinger Bands
-    */
+      Calculating and plotting Bollinger Bands
+      */
       // Settings
       const SMAverage = 20; // Simple Moving Average
       const std = 2; // Standard deviation
@@ -32,11 +32,11 @@
         { passive: true }
       );
 
-      /* 
-       Takes array of prices, SMA (simple moving average) and std (standard deviation multiplication). 
-       Returns an object with moving averages and Billinger Bands' prices limit as arrays of points.
-      */
-      function bollingerBands(avPricesArray, SMAverage, std) {
+      /*
+         Takes array of prices, SMA (simple moving average) and std (standard deviation multiplication).
+         Returns an object with moving averages and Billinger Bands' prices limit as arrays of points.
+        */
+      function bollingerBands(avPricesArray, SMAverage, std, stockName) {
         // Daily moving average - center band.
         let midBand = [];
         // Standard deviations above the center band.
@@ -49,8 +49,8 @@
         }
 
         /*
-        Using 2 iterators to calculate the delay caused by SMA days count
-        */
+          Using 2 iterators to calculate the delay caused by SMA days count
+          */
         let i = 0;
         let j = 0;
         while (i <= avPricesArray.length) {
@@ -77,10 +77,17 @@
             let topPoint = midPoint + standardDeviation * std;
             let botPoint = midPoint - standardDeviation * std;
 
-            // Adding results to arrays
-            midBand.push(midPoint);
-            topBand.push(topPoint);
-            botBand.push(botPoint);
+            // Adding results to arrays and fixing decimals
+            if (stockName === 'STL') {
+              midBand.push(midPoint.toFixed(1));
+              topBand.push(topPoint.toFixed(1));
+              botBand.push(botPoint.toFixed(1));
+            }
+            if (stockName === 'ABB') {
+              midBand.push(midPoint.toFixed(5));
+              topBand.push(topPoint.toFixed(5));
+              botBand.push(botPoint.toFixed(5));
+            }
             i += 1;
             j += 1;
           }
@@ -99,7 +106,7 @@
         var stockPrices = dataSet.map(el => el.last);
 
         // Generating object with arrays for each band
-        let bBands = bollingerBands(stockPrices, SMAverage, std);
+        let bBands = bollingerBands(stockPrices, SMAverage, std, id);
 
         // Generating x and y axis for stock prices
         var stockPrices = calculatePlotData(dataSet, false);
@@ -177,8 +184,8 @@
       }
 
       /*
-      Generating x and y values for original and new data.
-      */
+        Generating x and y values for original and new data.
+        */
       function calculatePlotData(initialData, additionalData) {
         var chartData = initialData.map(function(item, index, array) {
           return {
