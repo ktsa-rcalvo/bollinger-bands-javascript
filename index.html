@@ -14,6 +14,10 @@
       // Settings
       const SMAverage = 20; // Simple Moving Average
       const std = 2; // Standard deviation
+      const decimalsForStockName = {
+        STL: 1,
+        ABB: 5
+      };
 
       document.addEventListener(
         'DOMContentLoaded',
@@ -49,21 +53,21 @@
         }
 
         /*
-          Using 2 iterators to calculate the delay caused by SMA days count
+          Getting decimals for stocks before entering the loop
           */
-        let i = 0;
-        let j = 0;
-        while (i <= avPricesArray.length) {
+
+        const decimals = decimalsForStockName.stockName;
+
+        for (i = 0; i <= avPricesArray.length; i++) {
           if (i < SMAverage) {
             // Filling arrays with nulls until it will be possible to
             // calculate beginning of the bands or SMA
             midBand.push(null);
             topBand.push(null);
             botBand.push(null);
-            i += 1;
           } else {
             // Cutting a portion of last SMA-number of results
-            let workingArray = avPricesArray.slice(j, j + SMAverage);
+            let workingArray = avPricesArray.slice(i - SMAverage, i);
 
             // Calculates standard deviation of SMA-number of results
             let standardDeviation = math.std(workingArray);
@@ -78,27 +82,17 @@
             let botPoint = midPoint - standardDeviation * std;
 
             // Adding results to arrays and fixing decimals
-            if (stockName === 'STL') {
-              midBand.push(midPoint.toFixed(1));
-              topBand.push(topPoint.toFixed(1));
-              botBand.push(botPoint.toFixed(1));
-            }
-            if (stockName === 'ABB') {
-              midBand.push(midPoint.toFixed(5));
-              topBand.push(topPoint.toFixed(5));
-              botBand.push(botPoint.toFixed(5));
-            }
-            i += 1;
-            j += 1;
+            midBand.push(midPoint.toFixed(decimals));
+            topBand.push(topPoint.toFixed(decimals));
+            botBand.push(botPoint.toFixed(decimals));
           }
         }
-        let bollingerBands = {
+
+        return {
           midBand: midBand,
           topBand: topBand,
           botBand: botBand
         };
-
-        return bollingerBands;
       }
 
       function renderChart(id, dataSet) {
