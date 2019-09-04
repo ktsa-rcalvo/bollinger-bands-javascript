@@ -52,12 +52,11 @@
           throw 'Data count is too small!';
         }
 
-        /*
-          Getting decimals for stocks before entering the loop
-          */
-
-        const decimals = decimalsForStockName.stockName;
-
+        
+        // Getting decimals for stocks before entering the loop
+        
+        const decimals = decimalsForStockName[stockName];
+        
         for (i = 0; i <= avPricesArray.length; i++) {
           if (i < SMAverage) {
             // Filling arrays with nulls until it will be possible to
